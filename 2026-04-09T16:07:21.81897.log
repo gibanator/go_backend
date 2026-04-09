@@ -1,3 +1,0 @@
-2026-04-09T19:07:21.819081	DEBUG	api/main.go:29	Started Application
-2026-04-09T19:07:21.819311	WARN	server/server.go:49	HTTP Server started:	{"addr": ""}
-2026-04-09T19:07:21.82596	ERROR	api/main.go:45	Http server run error
