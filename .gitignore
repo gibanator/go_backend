@@ -1,2 +1,2 @@
 .env
-postgres_data
+migrations_old
