@@ -2,69 +2,47 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
-	"time"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"dailystep-backend/internal/config"
-	"dailystep-backend/internal/db"
-	"dailystep-backend/internal/handler"
-	appmiddleware "dailystep-backend/internal/middleware"
-	"dailystep-backend/internal/repository"
-	"dailystep-backend/internal/service"
-
-	"github.com/go-chi/chi/v5"
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/gibanator/go-server/internal/core/logger"
+	core_http_server "github.com/gibanator/go-server/internal/core/transport/http/server"
+	users_transport_http "github.com/gibanator/go-server/internal/feature/users/transport/http"
+	"go.uber.org/zap"
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT, syscall.SIGTERM,
+	)
+	defer cancel()
 
-	cfg, err := config.Load()
+	logger, err := logger.NewLogger(logger.LoadConfig())
 	if err != nil {
-		log.Fatalf("config error: %v", err)
+		fmt.Println("failed to init logger:", err)
+		os.Exit(1)
 	}
+	defer logger.Close()
 
-	pool, err := db.NewPostgresPool(ctx, cfg.DatabaseURL)
-	if err != nil {
-		log.Fatalf("db error: %v", err)
-	}
-	defer pool.Close()
+	logger.Debug("Started Application")
 
-	userRepo := repository.NewUserRepository(pool)
-	authService := service.NewAuthService(userRepo, cfg.JWTSecret, time.Duration(cfg.TokenTTLHours)*time.Hour)
+	usersTransportHTTP := users_transport_http.NewUsersHTTPHandler(nil)
+	usersRoutes := usersTransportHTTP.Routes()
 
-	authHandler := handler.NewAuthHandler(authService)
-	healthHandler := handler.NewHealthHandler()
+	apiVersionRouter := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
+	apiVersionRouter.RegisterRoutes(usersRoutes...)
 
-	r := chi.NewRouter()
+	httpServer := core_http_server.NewHTTPServer(
+		core_http_server.LoadServerConfig(),
+		logger,
+	)
 
-	r.Use(chimiddleware.RequestID)
-	r.Use(chimiddleware.RealIP)
-	r.Use(chimiddleware.Logger)
-	r.Use(chimiddleware.Recoverer)
-	r.Use(chimiddleware.Timeout(30 * time.Second))
+	httpServer.RegisterAPIRoutes(apiVersionRouter)
 
-	r.Get("/health", healthHandler.Check)
-
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", authHandler.Register)
-		r.Post("/login", authHandler.Login)
-	})
-
-	r.Group(func(r chi.Router) {
-		r.Use(appmiddleware.AuthMiddleware(cfg.JWTSecret))
-
-		r.Get("/me", func(w http.ResponseWriter, r *http.Request) {
-			userID, _ := appmiddleware.GetUserID(r.Context())
-			handler.WriteMePlaceholder(w, userID)
-		})
-	})
-
-	addr := ":" + cfg.HTTPPort
-	log.Printf("server listening on %s", addr)
-
-	if err := http.ListenAndServe(addr, r); err != nil {
-		log.Fatalf("server error: %v", err)
+	if err := httpServer.Launch(ctx); err != nil {
+		logger.Error("Http server run error:", zap.Error(err))
 	}
 }

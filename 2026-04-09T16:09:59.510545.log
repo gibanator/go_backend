@@ -1,0 +1,3 @@
+2026-04-09T19:09:59.510626	DEBUG	api/main.go:30	Started Application
+2026-04-09T19:09:59.510814	WARN	server/server.go:49	HTTP Server started:	{"addr": ""}
+2026-04-09T19:09:59.510866	ERROR	api/main.go:46	Http server run error:	{"error": "Http error: listen tcp: address 8080: missing port in address"}

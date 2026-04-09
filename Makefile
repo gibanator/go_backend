@@ -27,3 +27,6 @@ migrate-up:
 
 migrate-down:
 	@make migrate-action action=down
+
+run-server:
+	go run ./cmd/api/main.go 

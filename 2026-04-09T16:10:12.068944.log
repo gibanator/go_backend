@@ -1,0 +1,4 @@
+2026-04-09T19:10:12.069073	DEBUG	api/main.go:30	Started Application
+2026-04-09T19:10:12.069257	WARN	server/server.go:49	HTTP Server started:	{"addr": ""}
+2026-04-09T19:10:17.545132	WARN	server/server.go:63	Server shutdown. . .
+2026-04-09T19:10:17.54576	WARN	server/server.go:75	Server Stopped gracefully
