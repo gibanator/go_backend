@@ -9,10 +9,13 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/18/docker
+      - postgres_data:/var/lib/postgresql/18/docker
     restart: always
 
   db-migrate:
     image: migrate/migrate:v4.19.1
     volumes:
       - ./migrations:/migrations
+
+volumes:
+  postgres_data:
